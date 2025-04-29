@@ -1,0 +1,64 @@
+# Dockerfile_mobsf_docker
+
+ARG BASE_TAG="1.17.0-rolling-daily"
+ARG BASE_IMAGE="core-debian-bookworm"
+FROM kasmweb/$BASE_IMAGE:$BASE_TAG
+USER root
+
+ENV STARTUPDIR=/dockerstartup
+ENV INST_SCRIPTS=$STARTUPDIR/install
+
+# Make default user a sudoer
+RUN echo "kasm-user  ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+# Fix broken installs with apt (Kasm says required to install docker without issues)
+RUN apt --fix-broken install -y
+
+# Install Docker
+# Add Docker's official GPG key:
+RUN apt-get update
+RUN apt-get install ca-certificates curl -y
+RUN install -m 0755 -d /etc/apt/keyrings
+RUN curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+RUN chmod a+r /etc/apt/keyrings/docker.asc
+
+# Add the repository to Apt sources:
+RUN echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian \
+  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+  tee /etc/apt/sources.list.d/docker.list > /dev/null
+RUN apt-get update
+
+# Run apt install and use the default action if any prompts occur
+RUN apt-get install -y docker-ce docker-ce-cli containerd.io --option=Dpkg::Options::=--force-confdef
+
+# Post-install steps
+RUN usermod -aG docker kasm-user
+RUN newgrp docker
+
+ENV HOME=/home/kasm-default-profile
+WORKDIR $HOME
+
+########## CUSTOMIZATIONS ##########
+
+# TODO: Preload MobSF images by using Sysbox as the default container runtime during the build process
+# COPY ./src/ubuntu/install/mobsf/docker_pull.sh $INST_SCRIPTS/mobsf/
+# RUN bash $INST_SCRIPTS/mobsf/docker_pull.sh && rm -rf $INST_SCRIPTS/mobsf
+
+ENV LAUNCH_URL=http://localhost:8000/
+
+COPY ./src/ubuntu/install/mobsf/custom_startup.sh $STARTUPDIR/custom_startup.sh
+RUN chmod +x $STARTUPDIR/custom_startup.sh
+
+COPY ./src/ubuntu/install/chromium $INST_SCRIPTS/chromium/
+RUN bash $INST_SCRIPTS/chromium/install_chromium.sh && rm -rf $INST_SCRIPTS/chromium/
+
+COPY ./src/ubuntu/install/cleanup $INST_SCRIPTS/cleanup
+RUN bash $INST_SCRIPTS/cleanup/cleanup.sh && rm -rf $INST_SCRIPTS/cleanup/
+
+########## CUSTOMIZATIONS ##########
+
+# Userspace Runtime
+ENV HOME=/home/kasm-user
+WORKDIR $HOME
+USER 1000
