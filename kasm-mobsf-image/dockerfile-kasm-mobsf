@@ -1,5 +1,3 @@
-# Dockerfile_mobsf_docker
-
 ARG BASE_TAG="1.17.0-rolling-daily"
 ARG BASE_IMAGE="core-debian-bookworm"
 FROM kasmweb/$BASE_IMAGE:$BASE_TAG
