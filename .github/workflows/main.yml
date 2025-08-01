@@ -7,6 +7,7 @@ on:
     branches: ['release'] # Build on push to release branch
   schedule:
     - cron: '0 0 * * *' # Nightly rebuild at midnight UTC for image updates between releases
+  workflow_dispatch: # Enable "Run workflow" button to trigger manual tests
 
 # Defines two custom environment variables for the workflow. These are used for the Container registry domain, and a name for the Docker image that this workflow builds.
 env:
