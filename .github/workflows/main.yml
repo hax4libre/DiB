@@ -1,20 +1,18 @@
-# Build the Kasm-MobSF workspace image and push to GitHub Packages container registry.
+# Build and publish the Kasm-MobSF workspace image to GitHub Packages container registry.
 name: Create and publish a Docker image
 
-# Configures this workflow to run every time a change is pushed to the branch called `release`.
+# Triggers: on push to release branch, nightly schedule, or manual run via Actions tab.
 on:
   push:
     branches: ['release'] # Build on push to release branch
   schedule:
-    - cron: '0 0 * * *' # Nightly rebuild at midnight UTC for image updates between releases
-  workflow_dispatch: # Enable "Run workflow" button to trigger manual tests
+    - cron: '0 0 * * *' # Nightly rebuild at midnight UTC for rolling-daily image updates
+  workflow_dispatch: # Allow manual runs from the Actions tab
 
-# Defines two custom environment variables for the workflow. These are used for the Container registry domain, and a name for the Docker image that this workflow builds.
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository_owner }}/kasm-mobsf
+  REGISTRY: ghcr.io # GitHub Container Registry domain
+  IMAGE_NAME: ${{ github.repository_owner }}/kasm-mobsf # Full image name including owner
 
-# There is a single job in this workflow. It's configured to run on the latest available version of Ubuntu.
 jobs:
   build-and-push-image:
     runs-on: ubuntu-latest
@@ -26,18 +24,19 @@ jobs:
       id-token: write
       #
     steps:
-      - name: Checkout release branch # Always use release branch for builds
+      # Always checkout the release branch for all triggers
+      - name: Checkout release branch
         uses: actions/checkout@v4
         with:
-          ref: release
-      # Uses the `docker/login-action` action to log in to the Container registry registry using the account and password that will publish the packages. Once published, the packages are scoped to the account defined here.
+          ref: release # Enforces release branch usage on scheduled runs, which default to main
+      # Authenticate to the GitHub Container Registry
       - name: Log in to the Container registry
         uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      # Only for scheduled/rolling-daily builds: Get the latest release tag
+      # For nightly and manual builds: fetch the latest release tag for rolling-daily image tags
       - name: Get latest release tag
         if: github.event_name == 'schedule' || github.event_name =='workflow_dispatch'
         id: get_latest_release
@@ -49,29 +48,27 @@ jobs:
               repo: context.repo.repo
             });
             core.setOutput('release_tag', latestRelease.data.tag_name);
-      # This step uses [docker/metadata-action](https://github.com/docker/metadata-action#about) to extract tags and labels that will be applied to the specified image. The `id` "meta" allows the output of this step to be referenced in a subsequent step. The `images` value provides the base name for the tags and labels.
+      # Extract Docker metadata (labels, tags) for the image
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            # Tag for branch pushes (usually release branch)
+            # Use branch ref for release branch pushes
             type=ref,event=branch
-            # Tag for rolling-daily scheduled builds (latest release version + -rolling-daily)
+            # For rolling-daily (scheduled or manual runs), use latest release version plus -rolling-daily
              ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && format('{0}-rolling-daily', steps.get_latest_release.outputs.release_tag) || '' }}
-      # This step uses the `docker/build-push-action` action to build the image, based on your repository's `Dockerfile`. If the build succeeds, it pushes the image to GitHub Packages.
-      # It uses the `context` parameter to define the build's context as the set of files located in the specified path. For more information, see [Usage](https://github.com/docker/build-push-action#usage) in the README of the `docker/build-push-action` repository.
-      # It uses the `tags` and `labels` parameters to tag and label the image with the output from the "meta" step.
+      # Build and push the Docker image to the registry
       - name: Build and push Docker image
         id: push
         uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
         with:
-          context: kasm-mobsf-image
-          file: kasm-mobsf-image/dockerfile-kasm-mobsf
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          context: kasm-mobsf-image # Build context (source directory)
+          file: kasm-mobsf-image/dockerfile-kasm-mobsf # Path to Dockerfile (relative to context)
+          push: true # Push the built image
+          tags: ${{ steps.meta.outputs.tags }} # Use tags from metadata step
+          labels: ${{ steps.meta.outputs.labels }} # Use labels from metadata step
       
       # This step generates an artifact attestation for the image, which is an unforgeable statement about where and how it was built. It increases supply chain security for people who consume the image. For more information, see [Using artifact attestations to establish provenance for builds](/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds).
       - name: Generate artifact attestation
