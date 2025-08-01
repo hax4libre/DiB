@@ -872,7 +872,7 @@ Load a workspace from a custom image
    - Add a helpful `Description`
    - Insert a link to a `Thumbnail URL`. [GitHub repos](https://raw.githubusercontent.com/MobSF/Mobile-Security-Framework-MobSF/cecec6e96d802e8058682a15046fda389b90ac40/mobsf/static/img/mobsf_icon.png) and/or WikiMedia usually have an appropriately licensed logo.png
       - Alternatively, leave this blank to use the Kasm default logo
-   - Set `Docker Image` as `ghcr.io/hax4libre/kasm-mobsf:1.17.0` 
+   - Set `Docker Image` as `ghcr.io/hax4libre/kasm-mobsf:1.17.0-rolling-daily` 
       - GitHub Container Registry's format is `ghcr.io/repo/image:tag` 
    - Assign at least `2` cores
    - The MobSF docs call for 8GB of memory on bare metal. You can get by with less, but it will be sluggish. More is better
