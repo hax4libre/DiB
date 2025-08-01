@@ -39,7 +39,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       # Only for scheduled/rolling-daily builds: Get the latest release tag
       - name: Get latest release tag
-        if: github.event_name == 'schedule' || github.event_name =='workfolow_dispatch'
+        if: github.event_name == 'schedule' || github.event_name =='workflow_dispatch'
         id: get_latest_release
         uses: actions/github-script@v7
         with:
