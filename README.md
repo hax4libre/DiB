@@ -1,4 +1,6 @@
 # Detective in a Box
+**THIS PROJECT HAS BEEN ARCHIVED. FUTURE WORK WILL OCCUR UNDER [RAVENWOOD INTELLIGENCE COOPERATIVE](https://github.com/RavenwoodIntel).**
+
 This repository contains various files, configurations, tips, and tricks to help individual security researchers build their own reasonably hardened research platform on a minimal budget. A blog post discussing implementation and operational security measures for various risk levels will accompany this repository at a later date. Check back here for updates, or keep an eye out at [Hax4Libre.com](https://hax4libre.com).
 
 ![KasmDemo](/assets/KasmDemo.gif)
